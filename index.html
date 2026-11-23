@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#211535">
+  <meta name="description" content="Roselynn’s personal, teaching, and development dashboard">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Roselynn Hub</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <div class="shell top-inner">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">✦</span> Roselynn <span>Hub</span></a>
+      <div id="account" class="inline" hidden>
+        <button id="refresh" class="quiet" type="button">Sync now</button>
+        <button id="logout" class="quiet" type="button">Sign out</button>
+      </div>
+    </div>
+  </header>
+  <main id="main" class="shell">
+    <section class="hero" aria-labelledby="welcome">
+      <div class="stars" aria-hidden="true"></div>
+      <div class="hero-intro">
+        <p id="today-label" class="kicker"></p>
+        <h1 id="welcome">Welcome back,<br><em>Roselynn ✨</em></h1>
+      </div>
+      <figure class="quote">
+        <figcaption class="kicker">✦ &nbsp; Today's motivation</figcaption>
+        <blockquote id="quote"></blockquote>
+      </figure>
+    </section>
+    <section id="login" class="card login" aria-labelledby="signin-title">
+      <div class="icon rose" aria-hidden="true">✦</div>
+      <h2 id="signin-title">Make yourself at home</h2>
+      <p class="muted">Sign in to access your private dashboard.</p>
+      <form id="login-form" class="form-grid">
+        <label>Email<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Sign in</button>
+        <p id="login-status" role="status"></p>
+      </form>
+      <noscript>Enable JavaScript to use Roselynn Hub.</noscript>
+    </section>
+    <div id="dashboard" hidden>
+      <nav id="areas" aria-label="Dashboard areas" class="tabs"></nav>
+      <p id="status" class="sync-status" role="status"></p>
+      <div class="pinned">
+        <section class="card" id="focus"></section>
+        <section class="card" id="capture"></section>
+      </div>
+      <div id="sections"></div>
+    </div>
+  </main>
+  <dialog id="editor">
+    <form id="edit-form">
+      <div class="card-heading">
+        <h2 id="edit-title"></h2>
+        <button class="quiet" id="cancel-edit" type="button" aria-label="Close editor">✕</button>
+      </div>
+      <div id="fields" class="form-grid"></div>
+      <p id="edit-status" role="status"></p>
+      <button class="primary" type="submit">Save</button>
+    </form>
+  </dialog>
+  <footer class="shell footer">Roselynn Hub <span aria-hidden="true">✦</span> Malaysia time</footer>
+</body>
+</html>
