@@ -109,3 +109,19 @@ details{margin-top:.5rem}
 .parking-note{white-space:pre-wrap;overflow-wrap:anywhere}
 .calendar-head .tabs{margin-top:0}
 #dashboard:not([hidden]) .pinned:has(#focus:empty){display:none}
+
+.habit-periods{display:grid;gap:1rem}
+.habit-period{padding:1rem;border:1px solid #eddfef;border-radius:15px;background:#fcf8ff;min-width:0}
+.habit-period-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:.3rem .75rem}
+.habit-period h4,.habit-category{margin:0;font-weight:750}
+.habit-count{font-size:.83rem;color:#7a4f79;font-variant-numeric:tabular-nums}
+.habit-category{margin-top:.85rem;color:#695174;font-size:.83rem}
+.habit-progress{display:block;appearance:none;width:100%;height:.5rem;margin:.6rem 0 .85rem;border:0;border-radius:99px;overflow:hidden;background:#eee4f5;color:#a86ab9}
+.habit-progress::-webkit-progress-bar{background:#eee4f5}
+.habit-progress::-webkit-progress-value{background:#a86ab9;border-radius:99px}
+.habit-progress::-moz-progress-bar{background:#a86ab9;border-radius:99px}
+.habit-row{align-items:center;gap:.15rem .5rem}
+.habit-row .check{padding:0;flex:1}
+.habit-row .check input{flex-shrink:0}
+.habit-row .check input:checked + span{color:#774677}
+@media(min-width:760px){.habit-periods{grid-template-columns:repeat(2,minmax(0,1fr))}}

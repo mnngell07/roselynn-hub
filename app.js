@@ -1,6 +1,6 @@
 import {SUPABASE_URL, SUPABASE_ANON_KEY} from './config.js';
 import {
-  areas, features, weekdays, taskStatus, replacementStatus, radarStatus, zone,
+  areas, features, weekdays, taskStatus, replacementStatus, radarStatus, zone, habitCadences,
   today, atDate, dateKey, shiftDay, monday, localDateTime, malaysiaTimestamp, formatDay, myr
 } from './features.js';
 
@@ -23,7 +23,7 @@ function group(className, ...nodes) {
   return node;
 }
 
-const tables = [...Object.keys(features), 'daily_focus', 'wellness_daily', 'pre_class_checklist_checks'];
+const tables = [...Object.keys(features), 'daily_focus', 'habit_checkoffs', 'pre_class_checklist_checks'];
 const db = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const state = {
   user: null, generation: 0, area: 'all', data: {}, loaded: false, pending: null, writing: false,
@@ -67,6 +67,7 @@ function renderStatus() {
     }).format(state.syncedAt) + ' MYT';
   }
   $('#refresh').disabled = !!state.pending || !state.user;
+  document.querySelectorAll('.habit-check').forEach(control => { control.disabled = state.writing; });
 }
 
 async function readTable(table) {
@@ -77,7 +78,11 @@ async function readTable(table) {
     let query = db.from(table).select('*').order('id').limit(pageSize);
     if (cursor) query = query.gt('id', cursor);
     const {data, error} = await query;
-    if (error) throw new Error(table + ': ' + error.message);
+    if (error) {
+      const habitTable = table === 'habits' || table === 'habit_checkoffs';
+      if (habitTable && ['PGRST205','42P01'].includes(error.code)) return null;
+      throw new Error(table + ': ' + error.message);
+    }
     rows.push(...data);
     if (data.length === 0) return rows;
     cursor = data.at(-1).id;
@@ -233,6 +238,7 @@ function fieldInput(field, row, context) {
     if (field.min !== undefined) input.min = field.min;
     if (field.max !== undefined) input.max = field.max;
     if (field.step !== undefined) input.step = field.step;
+    if (field.maxLength !== undefined) input.maxLength = field.maxLength;
   }
   input.name = field.key;
   input.required = !!field.required;
@@ -241,6 +247,17 @@ function fieldInput(field, row, context) {
       field.type === 'time' ? String(current).slice(0,5) : current;
   }
   label.append(input);
+  if (field.suggestions) {
+    const list = element('datalist');
+    list.id = 'edit-options-' + field.key;
+    input.setAttribute('list',list.id);
+    for (const value of new Set([...field.suggestions,...records('habits').map(habit=>habit.category)])) {
+      const option = element('option');
+      option.value = value;
+      list.append(option);
+    }
+    label.append(list);
+  }
   return label;
 }
 function openEditor(table,row,context = {}) {
@@ -533,29 +550,78 @@ function calendarCard() {
   return cardNode;
 }
 
-function wellnessCard() {
-  const habits = {
-    drank_2l_water:'Drank 2L of water',walked_15_minutes:'Took a 15-minute walk',
-    avoided_sugary_drinks:'Skipped sugary drinks'
-  };
-  const day = today();
-  const logged = records('wellness_daily').find(row=>row.log_date === day);
-  const node = card('3 tiny daily wins','♡','rose');
-  node.append(element('p','muted',formatDay(day)));
-  for (const [key,label] of Object.entries(habits)) {
-    const control = element('input');
-    control.type = 'checkbox';
-    control.checked = !!logged?.[key];
-    control.addEventListener('change',async () => {
-      control.disabled = true;
-      if (!await mutate({table:'wellness_daily',row:logged,values:{log_date:day,[key]:control.checked},
-        conflict:'log_date'})) control.checked = !!logged?.[key];
-      control.disabled = false;
+function habitRow(habit, period, checked) {
+  const control = element('input');
+  control.type = 'checkbox';
+  control.className = 'habit-check';
+  control.id = 'habit-check-' + habit.id;
+  control.checked = checked;
+  control.disabled = state.writing;
+  control.addEventListener('change',async () => {
+    const focused = document.activeElement === control;
+    const saved = await mutate({
+      table:'habit_checkoffs',
+      values:{habit_id:habit.id,cadence:habit.cadence,period_start:period,checked:control.checked},
+      conflict:'habit_id,cadence,period_start'
     });
-    const text = element('label','check');
-    text.append(control,label);
-    node.append(text);
+    if (!saved) control.checked = checked;
+    if (focused && document.activeElement === document.body) document.getElementById(control.id)?.focus();
+  });
+  const text = element('label','check');
+  text.append(control,element('span','',habit.name));
+  const edit = button('Edit',()=>openEditor('habits',habit));
+  edit.setAttribute('aria-label','Edit ' + habit.name);
+  const remove = button('Delete',()=>{
+    if (window.confirm('Delete this habit and its check-off history?')) {
+      void mutate({table:'habits',row:habit,remove:true});
+    }
+  },'quiet danger');
+  remove.setAttribute('aria-label','Delete ' + habit.name);
+  return group('row habit-row',text,group('controls',edit,remove));
+}
+
+function habitPeriod(cadence, period, title, subtitle) {
+  const habits = records('habits').filter(habit=>habit.cadence === cadence)
+    .sort((a,b)=>a.created_at.localeCompare(b.created_at) || a.name.localeCompare(b.name));
+  const checked = new Set(records('habit_checkoffs').filter(row=>
+    row.cadence === cadence && row.period_start === period && row.checked).map(row=>row.habit_id));
+  const count = habits.filter(habit=>checked.has(habit.id)).length;
+  const block = element('section','habit-period');
+  const progress = element('progress','habit-progress');
+  progress.max = habits.length || 1;
+  progress.value = count;
+  progress.setAttribute('aria-label',title + ' habits completed');
+  progress.setAttribute('aria-valuetext',count + ' of ' + habits.length + ' complete');
+  block.append(group('habit-period-heading',element('h4','',title),
+    element('span','habit-count',count + ' of ' + habits.length + ' complete')),
+    element('p','muted',subtitle),progress);
+  if (!habits.length) block.append(element('p','empty','No ' + habitCadences[cadence].toLowerCase() + ' habits yet.'));
+  const categories = new Map();
+  for (const habit of habits) {
+    if (!categories.has(habit.category)) categories.set(habit.category,[]);
+    categories.get(habit.category).push(habit);
   }
+  for (const [category,items] of categories) {
+    block.append(element('h5','habit-category',category),
+      ...items.map(habit=>habitRow(habit,period,checked.has(habit.id))));
+  }
+  return block;
+}
+function habitCard() {
+  const day = today();
+  const week = monday(day);
+  const {title,icon} = features.habits;
+  if (state.data.habits === null || state.data.habit_checkoffs === null) {
+    const setupCard = card(title,icon,'rose');
+    setupCard.classList.add('wide');
+    setupCard.append(element('p','muted','Run the Habit & Routine Builder migration in Supabase, then tap Sync now.'));
+    return setupCard;
+  }
+  const node = card(title,icon,'rose',addButton('habits'));
+  node.classList.add('wide');
+  node.append(group('habit-periods',
+    habitPeriod('daily',day,'Today',formatDay(day)),
+    habitPeriod('weekly',week,'This week',formatDay(week) + ' – ' + formatDay(shiftDay(week,6)))));
   return node;
 }
 function languageCard() {
@@ -594,7 +660,7 @@ function personalSection() {
     weightCard.append(group('chart',canvas));
   }
   addRows(weightCard,'weight_logs',weights);
-  return section('Personal',expenseCard,weightCard,wellnessCard(),listCard('wellness_milestones'),
+  return section('Personal',habitCard(),expenseCard,weightCard,listCard('wellness_milestones'),
     languageCard(),listCard('vocabulary'));
 }
 function drawWeightChart() {

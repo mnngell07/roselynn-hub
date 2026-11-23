@@ -27,6 +27,8 @@ export const taskStatus = {todo:'To do', in_progress:'In progress', completed:'C
 export const replacementStatus = {needs_rescheduling:'Needs rescheduling', scheduled:'Scheduled', completed:'Completed'};
 export const radarStatus = {to_explore:'To explore', trying_out:'Trying out', applied:'Applied'};
 export const weekdays = {1:'Monday',2:'Tuesday',3:'Wednesday',4:'Thursday',5:'Friday',6:'Saturday',7:'Sunday'};
+export const habitCadences = {daily:'Daily',weekly:'Weekly'};
+export const habitCategories = ['Morning & Body','Space & Chores','Mind & Self-Care'];
 
 const field = (key, label, type = 'text', extra = {}) => ({key,label,type,...extra});
 const required = (key, label, type, extra) => field(key,label,type,{...extra,required:true});
@@ -68,6 +70,12 @@ export const features = {
     title:'Weight trend', singular:'weight', icon:'∿', empty:'Log a weight to start your trend.',
     fields:[date('log_date','Date'),required('weight_kg','Weight (kg)','number',{min:.01,step:.01}),field('note','Note','textarea')],
     label:r=>r.weight_kg + ' kg',details:r=>[formatDay(r.log_date),r.note], conflict:'log_date'
+  },
+  habits: {
+    title:'Habit & Routine Builder', singular:'habit', icon:'♡',
+    fields:[required('name','Habit name','text',{maxLength:120}),
+      select('cadence','Frequency',habitCadences,'daily'),
+      required('category','Category','text',{maxLength:80,value:habitCategories[0],suggestions:habitCategories})]
   },
   wellness_milestones: {
     title:'Milestone rewards', singular:'milestone', icon:'◇', empty:'Choose a goal and a reward to look forward to.',

@@ -1,5 +1,5 @@
 const cachePrefix = 'roselynn-hub-shell-';
-const cacheName = cachePrefix + 'v1';
+const cacheName = cachePrefix + 'v2';
 const shell = ['./', './index.html', './styles.css', './app.js', './features.js',
   './config.js', './manifest.json', './icon-192.png', './icon-512.png'];
 const shellUrls = new Set(shell.map(path => new URL(path, self.registration.scope).href));
